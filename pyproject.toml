@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "harmonic-trader"
+version = "0.1.0"
+description = "Causal multimodal pattern discovery for crypto perpetual markets"
+requires-python = ">=3.12,<3.14"
+dependencies = []
+
+[project.optional-dependencies]
+research = [
+  "numpy",
+  "polars",
+  "pyarrow",
+  "scikit-learn",
+  "scipy",
+]
+dev = ["pytest", "ruff"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/harmonic_trader"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
