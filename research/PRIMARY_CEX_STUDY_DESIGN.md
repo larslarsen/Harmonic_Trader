@@ -42,8 +42,11 @@ The microstructure block captures:
 - hourly mark/index/premium basis;
 - hourly volume and taker imbalance;
 - observed daily long/short liquidation state using only published available buckets;
-- volatility and cost/liquidity regime; and
+- volatility and contemporaneous volume/liquidity regime; and
 - contract age and declared market-state controls that are known point in time.
+
+Cost calibration is reserved for Nautilus execution and stress accounting. The sparse
+retrospective calibration sample is not a predictive feature.
 
 All rolling windows end at data available by the decision. The primary sample requires
 minimum history and authoritative coverage for every primary block.

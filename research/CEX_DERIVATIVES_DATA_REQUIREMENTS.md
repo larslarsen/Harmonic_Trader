@@ -122,8 +122,12 @@ Harmonic Trader derives, causally and within folds:
 - realized and indicative funding level, z-score, and persistence;
 - mark/index/premium basis level and change;
 - observed long/short liquidation intensity, imbalance, and acceleration;
-- taker flow imbalance, volume, volatility, and liquidity/cost regime; and
+- taker flow imbalance, volume, volatility, and contemporaneous liquidity regime; and
 - price geometry from confirmed perpetual-bar pivots.
+
+Cost-calibration rows parameterize execution and cost stress. They are not predictive
+features unless a later release supplies an authoritative point-in-time continuous
+liquidity product and a separately frozen model family.
 
 The full model and all ablations use the same accepted bundle and eligible event set.
 

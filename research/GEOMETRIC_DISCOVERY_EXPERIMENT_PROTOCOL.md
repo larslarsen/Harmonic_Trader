@@ -96,7 +96,7 @@ and threshold choices are frozen and counted before outcome inspection.
 - mark/index and premium basis level/change;
 - long/short observed-liquidation intensity, imbalance, and acceleration;
 - total/taker-buy flow imbalance and volume regime;
-- volatility and liquidity/cost regime; and
+- volatility and contemporaneous volume/liquidity regime; and
 - explicit censorship and data-quality state allowed by the frozen primary policy.
 
 Each transform names its physical units, lookback, denominator, winsorization, minimum
