@@ -1,24 +1,28 @@
 # Current Task
 
-Ticket: HT-002
+Ticket: HT-003
 
-State: ACCEPTED
+State: AUTHORIZED
 
-Actor: Lead Quantitative Finance Researcher/Engineer
+Actor: Sr Dev - Grok Build High
 
-HT-002's registered NautilusTrader rc3 custom-observation envelope, deterministic catalog
-partitions, strategy-clock guards, and fixture-only low-level replay are accepted at the
-exact source and test hashes recorded in [HT-002](../../tickets/HT-002.md). Independent
-reviewer validation collected 10 passing targeted tests and a clean targeted Ruff result.
+Implement the bounded independent Nautilus execution and accounting reconciliation
+fixtures specified in [HT-003](../../tickets/HT-003.md).
 
-No real-data access, accepted-bundle storage adapter, signal model, trading strategy,
-order/fill, execution/accounting implementation, or scored experiment is authorized by
-this acceptance.
+The accepted implementation source baseline is
+`8df6a8aa70bbb1582b1b1a4a430977a161b26088`. Prove it is an ancestor of `HEAD`; the only
+committed paths between that baseline and this reviewer handoff may be this file and the
+HT-003 ticket. Do not require `HEAD` to equal the source baseline.
 
-Next required actor: Lead Quantitative Finance Researcher/Engineer. Define the bounded
-HT-003 architecture and implementation contract for the final pre-release roadmap item:
-independent Nautilus execution and accounting reconciliation fixtures. No developer is
-authorized until that ticket and handoff are published.
+Modify only the three paths authorized by HT-003. Use the already provisioned exact
+NautilusTrader 2.0.0rc3 environment, run only the two commands authorized there, stop on
+the first nonzero command, and return the required source hashes, line counts, test count,
+and command results. Do not use Git, install packages, access the network or real data,
+inspect research outcomes, or edit governance/research files.
+
+This is a fixture-only financial-semantic drop. It does not authorize an accepted-bundle
+adapter, production strategy, final numerical execution/holding rule, liquidation model,
+real-data backtest, or scored experiment.
 
 The five unrelated untracked research drafts and owner-created `graphify-out/` directory
 remain out of scope. Preserve them unchanged.
