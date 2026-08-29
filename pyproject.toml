@@ -17,6 +17,10 @@ research = [
   "scikit-learn",
   "scipy",
 ]
+nautilus = [
+  "nautilus-trader==2.0.0rc3",
+  "pyarrow==25.0.0",
+]
 dev = ["pytest", "ruff"]
 
 [tool.hatch.build.targets.wheel]

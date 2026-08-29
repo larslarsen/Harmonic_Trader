@@ -1,0 +1,51 @@
+"""NautilusTrader custom-data and strategy-clock integration."""
+
+from harmonic_trader.integration.nautilus_data import (
+    SCHEMA_VERSION,
+    TYPE_NAME,
+    HarmonicObservationData,
+    NautilusDataError,
+    catalog_identifier,
+    decode_observation,
+    encode_observation,
+    observation_clocks,
+    observation_data_type,
+    observation_sha256,
+    prepare_observation_batch,
+    register_harmonic_observation_data,
+    unwrap_observation,
+    wrap_observation,
+    write_catalog_partitions,
+)
+from harmonic_trader.integration.strategy_clock import (
+    ClockGuardError,
+    nanoseconds_from_microseconds,
+    require_multimodal_decision_ready,
+    require_observation_available,
+    require_submission_after_latency,
+    require_uint64_ns,
+)
+
+__all__ = [
+    "SCHEMA_VERSION",
+    "TYPE_NAME",
+    "ClockGuardError",
+    "HarmonicObservationData",
+    "NautilusDataError",
+    "catalog_identifier",
+    "decode_observation",
+    "encode_observation",
+    "nanoseconds_from_microseconds",
+    "observation_clocks",
+    "observation_data_type",
+    "observation_sha256",
+    "prepare_observation_batch",
+    "register_harmonic_observation_data",
+    "require_multimodal_decision_ready",
+    "require_observation_available",
+    "require_submission_after_latency",
+    "require_uint64_ns",
+    "unwrap_observation",
+    "wrap_observation",
+    "write_catalog_partitions",
+]

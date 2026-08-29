@@ -2,29 +2,23 @@
 
 Ticket: HT-002
 
-State: AUTHORIZED
+State: ACCEPTED
 
-Actor: Sr Dev - Grok Build High
+Actor: Lead Quantitative Finance Researcher/Engineer
 
-Source baseline: `c552e235bc42ae911d13c7b81fd6e6478136178a`
+HT-002's registered NautilusTrader rc3 custom-observation envelope, deterministic catalog
+partitions, strategy-clock guards, and fixture-only low-level replay are accepted at the
+exact source and test hashes recorded in [HT-002](../../tickets/HT-002.md). Independent
+reviewer validation collected 10 passing targeted tests and a clean targeted Ruff result.
 
-Implement only the registered NautilusTrader custom-observation envelope, causal clock
-guards, and deterministic fixture tests specified in [HT-002](../../tickets/HT-002.md).
-The integration targets the exact `nautilus_trader==2.0.0rc3` PyO3 API; the reviewer has
-already provisioned the ignored `.venv`, so no install or network operation is authorized.
+No real-data access, accepted-bundle storage adapter, signal model, trading strategy,
+order/fill, execution/accounting implementation, or scored experiment is authorized by
+this acceptance.
 
-Authorized paths are exactly:
-
-- `pyproject.toml`;
-- `src/harmonic_trader/integration/__init__.py`;
-- `src/harmonic_trader/integration/nautilus_data.py`;
-- `src/harmonic_trader/integration/strategy_clock.py`;
-- `tests/test_nautilus_data.py`; and
-- `tests/test_nautilus_strategy_clock.py`.
-
-Run each ticket command at most once, stop on the first nonzero result, and report without
-Git operations. No storage adapter, real data, outcomes, trading strategy, order/fill,
-execution/accounting, or scored experiment is authorized.
+Next required actor: Lead Quantitative Finance Researcher/Engineer. Define the bounded
+HT-003 architecture and implementation contract for the final pre-release roadmap item:
+independent Nautilus execution and accounting reconciliation fixtures. No developer is
+authorized until that ticket and handoff are published.
 
 The five unrelated untracked research drafts and owner-created `graphify-out/` directory
 remain out of scope. Preserve them unchanged.
