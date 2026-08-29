@@ -1,23 +1,30 @@
 # Current Task
 
-Ticket: HT-001
+Ticket: HT-002
 
-State: ACCEPTED
+State: AUTHORIZED
 
-Actor: Lead Quantitative Finance Researcher/Engineer
+Actor: Sr Dev - Grok Build High
 
-HT-001's training-only robust block transform and matched FULL/MICRO/GEOMETRY matrices
-are accepted at the exact source and test hashes recorded in
-[HT-001](../../tickets/HT-001.md). Independent reviewer validation collected 19 passing
-targeted tests and a clean targeted Ruff result.
+Source baseline: `c552e235bc42ae911d13c7b81fd6e6478136178a`
 
-No scored experiment, real-data access, clustering selection, storage adapter, or
-Nautilus implementation is authorized by this acceptance.
+Implement only the registered NautilusTrader custom-observation envelope, causal clock
+guards, and deterministic fixture tests specified in [HT-002](../../tickets/HT-002.md).
+The integration targets the exact `nautilus_trader==2.0.0rc3` PyO3 API; the reviewer has
+already provisioned the ignored `.venv`, so no install or network operation is authorized.
 
-Next required actor: Lead Quantitative Finance Researcher/Engineer. Define the bounded
-HT-002 architecture and implementation contract for the next pre-release roadmap item:
-Nautilus custom-data round-trip and strategy-clock fixtures. No developer is authorized
-until that ticket and handoff are published.
+Authorized paths are exactly:
+
+- `pyproject.toml`;
+- `src/harmonic_trader/integration/__init__.py`;
+- `src/harmonic_trader/integration/nautilus_data.py`;
+- `src/harmonic_trader/integration/strategy_clock.py`;
+- `tests/test_nautilus_data.py`; and
+- `tests/test_nautilus_strategy_clock.py`.
+
+Run each ticket command at most once, stop on the first nonzero result, and report without
+Git operations. No storage adapter, real data, outcomes, trading strategy, order/fill,
+execution/accounting, or scored experiment is authorized.
 
 The five unrelated untracked research drafts and owner-created `graphify-out/` directory
 remain out of scope. Preserve them unchanged.
