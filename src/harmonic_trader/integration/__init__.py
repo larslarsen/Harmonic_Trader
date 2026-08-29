@@ -1,5 +1,16 @@
-"""NautilusTrader custom-data and strategy-clock integration."""
+"""NautilusTrader custom-data, strategy-clock, and independent accounting integration."""
 
+from harmonic_trader.integration.accounting import (
+    AccountingError,
+    FillRecord,
+    FillSide,
+    FundingRecord,
+    LedgerConfig,
+    LedgerReport,
+    LedgerSnapshot,
+    MarkRecord,
+    reconcile_ledger,
+)
 from harmonic_trader.integration.nautilus_data import (
     SCHEMA_VERSION,
     TYPE_NAME,
@@ -29,8 +40,16 @@ from harmonic_trader.integration.strategy_clock import (
 __all__ = [
     "SCHEMA_VERSION",
     "TYPE_NAME",
+    "AccountingError",
     "ClockGuardError",
+    "FillRecord",
+    "FillSide",
+    "FundingRecord",
     "HarmonicObservationData",
+    "LedgerConfig",
+    "LedgerReport",
+    "LedgerSnapshot",
+    "MarkRecord",
     "NautilusDataError",
     "catalog_identifier",
     "decode_observation",
@@ -40,6 +59,7 @@ __all__ = [
     "observation_data_type",
     "observation_sha256",
     "prepare_observation_batch",
+    "reconcile_ledger",
     "register_harmonic_observation_data",
     "require_multimodal_decision_ready",
     "require_observation_available",
