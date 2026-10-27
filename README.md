@@ -49,9 +49,9 @@ The current reviewed companion can be selected as follows; then inspect the clos
 without discarding any source rows:
 
 ```bash
-CEX002_HISTORY="$CEX002_ROOT/data/.cex002_contract_history/review528-20261027.json"
-CEX002_HISTORY_SHA="7db1339fa6ac9bc1d8a49e96e658f8448d9312f3732f8f529372203c4e3e40f4"
-CEX002_KNOWLEDGE_TIME="2026-10-27T17:39:13Z"
+CEX002_HISTORY="$CEX002_ROOT/data/.cex002_contract_history/review529-20261027.json"
+CEX002_HISTORY_SHA="6ef47558eff2b3d3b30fbd8569dd96e0f7b7863bd8b310025cf641f7e72034a9"
+CEX002_KNOWLEDGE_TIME="2026-10-27T18:20:52Z"
 PYTHONPATH=src .venv/bin/python -m harmonic_trader.cex002 --root "$CEX002_ROOT" rows \
   --product binance_usdm_bar_1h --symbol ANCBUSD --month 2022-12 --component '' \
   --history "$CEX002_HISTORY" --history-sha "$CEX002_HISTORY_SHA" \
@@ -65,14 +65,32 @@ boundary. It also refuses unknown histories and mixed-episode bar batches, rathe
 silently omitting rows. The `rows` command still shows those observations and their
 classification. Funding annotations never establish payment entitlement.
 
-The current companion covers 777 reviewed contract episodes across 765 symbols. Another
-6 release symbols still have no recovered episode; their history-aware bars are refused
-as unknown. All lifetime contract specifications remain incomplete.
+The current companion covers 782 contract episodes across 770 symbols. Five contracts
+(BTCUSDT, ETHUSDT, BCHUSDT, XRPUSDT and ARBUSDT) have a documented confirmed-active start
+instead of an invented exact launch time. Earlier intervals are `before_confirmed_active`
+and remain accessible through `rows`; native Bars are refused there. GAIBUSDT is explicitly
+postponed, is pending in the retained snapshot, and has no bar partitions.
+
+For example, after setting the three history variables above, deliver one stored BTC bar:
+
+```bash
+PYTHONPATH=src .venv/bin/python -m harmonic_trader.cex002 --root "$CEX002_ROOT" nautilus \
+  --product binance_usdm_bar_1h --symbol BTCUSDT --month 2019-12 --component '' --limit 1 \
+  --history "$CEX002_HISTORY" --history-sha "$CEX002_HISTORY_SHA" \
+  --knowledge-time "$CEX002_KNOWLEDGE_TIME" --clock-policy event_time_assumption \
+  --reference-policy reviewed_notices_assumption
+```
+
+All historical contract specifications remain incomplete. Binance permits some order
+thresholds to change without announcements; present API limits cannot be assigned to past
+dates. These callbacks demonstrate data delivery and dated selection, not order execution,
+margin calculations or fills.
 
 The Python API is `ContractHistory`, `annotate_row` and `iter_history_rows` in
 `harmonic_trader.data.cex002_history`. Native `native_bar`/`deliver_to_nautilus` accept
 `history`, `knowledge_time`, `reference_policy` and the matching `publication_sha256`.
-The companion preserves incomplete-history flags and launch-only specifications. Using
+The companion preserves incomplete-history flags; exact launches carry launch-only terms,
+and confirmed-active records do not invent them. Using
 today's recovered notices is retrospective reconstruction; it does not establish what
 was known at a historical trading decision. Omitting the history file retains HT-004's
 explicitly unqualified event-time transport.

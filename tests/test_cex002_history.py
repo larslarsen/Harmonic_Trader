@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -44,17 +45,27 @@ def _episode(symbol: str, launch: int, end: int | None, stop: int | None, mark: 
 
 
 def _history(root: Path, publication_sha: str, episodes: list[dict],
-             *, known: datetime = KNOWN) -> ContractHistory:
-    document = {"document_type": "cex002_contract_history", "schema_version": 1,
+             *, known: datetime = KNOWN, schema: int = 1,
+             unresolved: list[dict] | None = None) -> ContractHistory:
+    document = {"document_type": "cex002_contract_history", "schema_version": schema,
                 "publication_sha256": publication_sha, "facts_sha256": "b" * 64,
                 "known_from": known.isoformat(), "history_complete": False,
-                "episodes": episodes, "unresolved_symbols": [{"native_symbol": "UNSEENUSDT",
-                                                               "reasons": ["no_recovered_launch"]}]}
+                "episodes": episodes, "unresolved_symbols": unresolved if unresolved is not None else [
+                    {"native_symbol": "UNSEENUSDT", "reasons": ["no_recovered_launch"]}]}
     body = json.dumps(document, sort_keys=True, separators=(",", ":")).encode()
     target = root / "history.json"
     target.write_bytes(body)
     return ContractHistory(target, sha256=hashlib.sha256(body).hexdigest(),
                            publication_sha256=publication_sha)
+
+
+def _confirmed(symbol: str, start: int, end: int | None = None,
+               stop: int | None = None, mark: str = "a") -> dict:
+    episode = _episode(symbol, start, end, stop, mark)
+    episode.update(launch_ms=None, coverage_start_ms=start, start_kind="confirmed_active",
+                   launch_terms={})
+    episode["events"][0]["event"] = "confirmed_active"
+    return episode
 
 
 def test_history_classifies_whole_interval_restrictions_and_relaunch(release) -> None:
@@ -176,3 +187,117 @@ def test_cli_complete_options_rows_annotation_and_qualified_native_delivery(rele
     assert delivered["bar_count"] == 1
     assert delivered["qualification"] == REFERENCE_POLICY
     assert delivered["history_sha256"] == history.sha256
+
+
+def test_confirmed_boundaries_knowledge_restrictions_closure_and_evidence(release) -> None:
+    root, sha, _reader = release
+    episode = _confirmed("BTCUSDT", 100, 500, 400)
+    history = _history(root, sha, [episode], schema=2)
+    classify = history.classify
+    before = classify("BTCUSDT", 0, 100, KNOWN)
+    assert before.status == "before_confirmed_active"
+    assert before.instrument_id is None
+    assert before.evidence == tuple(episode["events"])
+    assert before.evidence[0]["effective_ms"] == 100
+    assert classify("BTCUSDT", 99, 101, KNOWN).status == "crosses_boundary"
+    assert classify("BTCUSDT", 100, 400, KNOWN).status == "within_known_episode"
+    assert classify("BTCUSDT", 399, 401, KNOWN).status == "crosses_boundary"
+    assert classify("BTCUSDT", 400, 500, KNOWN).status == "new_positions_restricted"
+    assert classify("BTCUSDT", 499, 501, KNOWN).status == "crosses_boundary"
+    assert classify("BTCUSDT", 500, 501, KNOWN).status == "at_or_after_execution_end"
+    unknown = classify("BTCUSDT", 100, 101, datetime(2026, 10, 26, tzinfo=timezone.utc))
+    assert unknown.status == "unknown_at_knowledge_time" and unknown.evidence == ()
+    assert unknown.instrument_id is None
+    assert before.history_complete is before.payment_eligibility_established is False
+
+
+def test_confirmed_later_bar_reaches_callbacks_earlier_and_crossing_bars_refuse(release) -> None:
+    root, sha, reader = release
+    first, crossing = list(reader.iter_rows(PRODUCTS[1], component=""))
+    history = _history(root, sha, [_confirmed("BTCUSDT", 3_600_001)], schema=2)
+    later = replace(crossing, fields={**crossing.fields, "open_time": 7_200_000,
+                                     "close_time": 10_800_000})
+    kwargs = {"clock_policy": CLOCK_POLICY, "history": history, "knowledge_time": KNOWN,
+              "reference_policy": REFERENCE_POLICY, "publication_sha256": sha}
+    receipt = deliver_to_nautilus([later], **kwargs)
+    assert receipt["custom_count"] == receipt["bar_count"] == 1
+    assert receipt["custom_receipts"][0]["fields"] == later.fields
+    assert receipt["bar_receipts"][0]["bar_type"].startswith("ins_" + "a" * 64 + ".BINANCE")
+    lineage = receipt["custom_receipts"][0]["lineage"]["reference_classification"]
+    assert lineage["status"] == "within_known_episode"
+    assert lineage["evidence"][0]["event"] == "confirmed_active"
+    for row, reason in ((first, "before_confirmed_active"), (crossing, "crosses_boundary")):
+        with pytest.raises(Cex002ReaderError, match=reason):
+            native_bar(row, **kwargs)
+        with pytest.raises(Cex002ReaderError, match=reason):
+            deliver_to_nautilus([row], **kwargs)
+    funding = next(reader.iter_rows(PRODUCTS[4]))
+    funded = deliver_to_nautilus([funding], **kwargs)
+    assert funded["custom_receipts"][0]["fields"] == funding.fields
+    assert funded["custom_receipts"][0]["lineage"]["reference_classification"][
+        "payment_eligibility_established"] is False
+
+
+def test_schema2_exact_launch_compatibility_mixed_sorting_and_pending_gaib(release) -> None:
+    root, sha, _reader = release
+    exact = _episode("BTCUSDT", 0, 100, None, "b")
+    confirmed = _confirmed("BTCUSDT", 200, mark="c")
+    legacy = _history(root, sha, [exact])
+    unresolved = [{"native_symbol": "GAIBUSDT", "reasons": ["launch_postponed_indefinitely"],
+                   "events": [{"event": "launch", "event_status": "postponed",
+                               "executable_boundary": False,
+                               "source_url": "https://example.test/gaib"}]}]
+    mixed = _history(root, sha, [confirmed, exact], schema=2, unresolved=unresolved)
+    assert mixed.document["episodes"][1] == legacy.document["episodes"][0]
+    assert mixed.classify("BTCUSDT", 0, 1, KNOWN) == legacy.classify("BTCUSDT", 0, 1, KNOWN)
+    assert mixed.classify("BTCUSDT", 100, 200, KNOWN).status == "between_episodes"
+    assert mixed.classify("BTCUSDT", 199, 201, KNOWN).status == "crosses_boundary"
+    assert mixed.classify("BTCUSDT", 200, 201, KNOWN).instrument_id == confirmed["instrument_id"]
+    assert mixed.classify("GAIBUSDT", 0, 1, KNOWN).status == "unknown_symbol"
+    assert mixed.unresolved_symbols == tuple(unresolved)
+    assert _history(root, sha, [_episode("ETHUSDT", 100, None, None, "d")], schema=2).classify(
+        "ETHUSDT", 0, 100, KNOWN).status == "before_known_launch"
+
+
+@pytest.mark.parametrize("schema,change", [
+    (1, {}), (2, {"start_kind": "launch"}), (2, {"start_kind": None}),
+    (2, {"coverage_start_ms": None}), (2, {"coverage_start_ms": True}),
+    (2, {"coverage_start_ms": -1}), (2, {"coverage_start_ms": 101}),
+    (2, {"launch_terms": {"tick_size": "0.01"}}),
+    (2, {"source_urls": []}), (2, {"events": []}), (2, {"events": [None]}),
+    (2, {"events": [{"event": "confirmed_active", "effective_ms": 100, "source_urls": []}]}),
+    (2, {"events": [{"event": "confirmed_active", "effective_ms": 100,
+                     "source_urls": ["https://example.test/other"]}]}),
+    (2, {"events": [{"event": "confirmed_active", "effective_ms": 100,
+                     "native_symbol": "ETHUSDT", "source_urls": ["https://example.test/a"]}]}),
+    (2, {"events": [{"event": "launch", "effective_ms": 100,
+                     "source_urls": ["https://example.test/a"]}]}),
+    (2, {"execution_end_ms": 100}), (2, {"new_positions_stop_ms": 100}),
+])
+def test_reader_rejects_malformed_or_unsupported_confirmed_episode(release, schema, change) -> None:
+    root, sha, _reader = release
+    episode = _confirmed("BTCUSDT", 100)
+    episode.update(change)
+    with pytest.raises(Cex002ReaderError):
+        _history(root, sha, [episode], schema=schema)
+
+
+@pytest.mark.parametrize("change", [
+    {"coverage_start_ms": 101}, {"coverage_start_ms": True}, {"coverage_start_ms": None},
+    {"start_kind": "confirmed_active"}, {"start_kind": "unknown"},
+])
+def test_exact_launch_cannot_claim_conflicting_coverage(release, change) -> None:
+    root, sha, _reader = release
+    episode = _episode("BTCUSDT", 100, None, None, "a")
+    episode.update(change)
+    with pytest.raises(Cex002ReaderError, match="conflicting coverage"):
+        _history(root, sha, [episode], schema=2)
+
+
+@pytest.mark.parametrize("confirmed_first", [True, False])
+def test_reader_rejects_overlapping_confirmation_and_exact_launch(release, confirmed_first) -> None:
+    root, sha, _reader = release
+    confirmed = _confirmed("BTCUSDT", 100 if confirmed_first else 200)
+    exact = _episode("BTCUSDT", 200 if confirmed_first else 100, None, None, "b")
+    with pytest.raises(Cex002ReaderError, match="overlapping"):
+        _history(root, sha, [exact, confirmed], schema=2)

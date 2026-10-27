@@ -54,6 +54,11 @@ def _int_ms(value: object, field: str) -> int:
     return value
 
 
+def _coverage_start(episode: Mapping[str, Any]) -> int:
+    return (episode["coverage_start_ms"] if episode["launch_ms"] is None
+            else episode["launch_ms"])
+
+
 @dataclass(frozen=True, slots=True)
 class HistoryClassification:
     status: str
@@ -112,7 +117,7 @@ class ContractHistory:
         except ValueError as exc:
             raise Cex002ReaderError("contract history is not JSON") from exc
         _need(type(document) is dict and document.get("document_type") == "cex002_contract_history"
-              and type(document.get("schema_version")) is int and document["schema_version"] == 1
+              and type(document.get("schema_version")) is int and document["schema_version"] in {1, 2}
               and document.get("publication_sha256") == publication_sha256
               and _hex64(document.get("facts_sha256"))
               and document.get("history_complete") is False,
@@ -132,7 +137,37 @@ class ContractHistory:
         for episode in episodes:
             _need(type(episode) is dict, "contract episode is malformed")
             symbol = episode.get("native_symbol")
-            launch = _int_ms(episode.get("launch_ms"), "episode launch")
+            if episode.get("launch_ms") is None:
+                _need(document["schema_version"] == 2 and "launch_ms" in episode
+                      and episode.get("start_kind") == "confirmed_active",
+                      "null episode launch requires schema 2 confirmed_active")
+                launch = _int_ms(episode.get("coverage_start_ms"), "episode coverage start")
+                _need(episode.get("launch_terms") == {}
+                      and type(episode.get("events")) is list
+                      and type(episode.get("source_urls")) is list
+                      and bool(episode["source_urls"])
+                      and all(type(url) is str and bool(url) for url in episode["source_urls"])
+                      and all(type(event) is dict for event in episode["events"]),
+                      "confirmed-active episode terms or evidence is malformed")
+                confirmations = [event for event in episode["events"]
+                                 if event.get("event") == "confirmed_active"]
+                _need(bool(confirmations) and all(
+                    type(event.get("effective_ms")) is int and event["effective_ms"] == launch
+                    and event.get("native_symbol", symbol) == symbol
+                    and type(event.get("source_urls")) is list and bool(event["source_urls"])
+                    and all(type(url) is str and bool(url) and url in episode["source_urls"]
+                            for url in event["source_urls"])
+                    for event in confirmations)
+                    and not any(event.get("event") in {"launch", "replacement_launch"}
+                                for event in episode["events"]),
+                    "confirmed-active source evidence or coverage start differs")
+            else:
+                launch = _int_ms(episode["launch_ms"], "episode launch")
+                _need(("coverage_start_ms" not in episode
+                       or type(episode["coverage_start_ms"]) is int
+                       and episode["coverage_start_ms"] == launch)
+                      and ("start_kind" not in episode or episode["start_kind"] == "launch"),
+                      "exact-launch episode has conflicting coverage fields")
             end = episode.get("execution_end_ms")
             restriction = episode.get("new_positions_stop_ms")
             if end is not None:
@@ -162,10 +197,10 @@ class ContractHistory:
             versions.add(version_id)
             grouped.setdefault(symbol, []).append(episode)
         for symbol, group in grouped.items():
-            group.sort(key=lambda episode: episode["launch_ms"])
+            group.sort(key=_coverage_start)
             for earlier, later in zip(group, group[1:]):
                 _need(earlier["execution_end_ms"] is not None
-                      and earlier["execution_end_ms"] <= later["launch_ms"],
+                      and earlier["execution_end_ms"] <= _coverage_start(later),
                       f"overlapping contract episodes for {symbol}")
             self._episodes[symbol] = tuple(group)
         unresolved_seen: set[str] = set()
@@ -186,6 +221,7 @@ class ContractHistory:
         _need(end > start, "observation interval must be nonempty [start,end)")
         _need(type(symbol) is str and bool(symbol), "native symbol is required")
         episode: dict[str, Any] | None = None
+        evidence_episode: dict[str, Any] | None = None
         group = self._episodes.get(symbol, ())
         if _utc(knowledge_time) < self.known_from:
             status = "unknown_at_knowledge_time"
@@ -193,7 +229,7 @@ class ContractHistory:
             status = "unknown_symbol"
         else:
             for candidate in group:
-                if candidate["launch_ms"] <= start and (candidate["execution_end_ms"] is None
+                if _coverage_start(candidate) <= start and (candidate["execution_end_ms"] is None
                                                        or start < candidate["execution_end_ms"]):
                     episode = candidate
                     break
@@ -202,13 +238,17 @@ class ContractHistory:
                              and item["execution_end_ms"] <= start]
                 if preceding:
                     episode = preceding[-1]
-                if start < group[0]["launch_ms"]:
-                    status = "before_known_launch"
+                if start < _coverage_start(group[0]):
+                    if group[0]["launch_ms"] is None:
+                        status = "before_confirmed_active"
+                        evidence_episode = group[0]
+                    else:
+                        status = "before_known_launch"
                 elif group[-1]["execution_end_ms"] is not None and start >= group[-1]["execution_end_ms"]:
                     status = "at_or_after_execution_end"
                 else:
                     status = "between_episodes"
-                if any(start < item["launch_ms"] < end for item in group):
+                if any(start < _coverage_start(item) < end for item in group):
                     status = "crosses_boundary"
             else:
                 execution_end = episode["execution_end_ms"]
@@ -221,7 +261,9 @@ class ContractHistory:
                     status = "new_positions_restricted"
                 else:
                     status = "within_known_episode"
-        evidence = tuple(episode["events"] + episode["pre_market_events"]) if episode else ()
+        evidence_episode = episode or evidence_episode
+        evidence = (tuple(evidence_episode["events"] + evidence_episode["pre_market_events"])
+                    if evidence_episode else ())
         return HistoryClassification(status, symbol, start, end,
             episode["instrument_id"] if episode else None,
             episode["asset_id"] if episode else None,
