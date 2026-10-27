@@ -5,25 +5,25 @@ State: ACCEPTED
 Reviewer: Lead Quantitative Finance Researcher/Engineer
 Next ticket: NONE
 
-The reader now consumes the pinned CMB dated-contract companion, returns original rows
-with historical classifications, separates canonical identities across reused tickers and
-relaunches, and refuses history-aware native Bars outside a known unrestricted episode.
-Funding observations retain their values and annotations without a payment-entitlement claim.
+The reader consumes the pinned CMB dated-contract companion, preserves original fields,
+separates contract identities across ticker reuse/relaunches, and refuses history-aware
+native Bars outside a known unrestricted episode. Funding observations carry no payment
+entitlement claim. Existing source checks remain accepted; no HT source changed.
 
-Sixteen focused HT cases and scoped Ruff remain passed; no source changed. The earlier
-LIT/PUMP/ANCBUSD real checks remain accepted. CMB Review527 adds 96 symbols to the
-companion, now 194 episodes across 182 symbols. All prior 98 episode records are unchanged.
-Current SHA256: 2f72426cc568d4d7a487d75537cd18cdefc1b29914f68d7aec0dad162e4530aa.
-Retrospective known_from: 2026-10-27T07:21:19Z. README selects this new pin.
+CMB Review528 adds 583 symbols: 777 episodes across 765 symbols, preserving
+193 previous episode records exactly. BNX's final closure/cutoff are corrected; its identity and launch terms are unchanged. All 127 SETTLING snapshot names and 73 names
+absent from the snapshot now have recovered launch/closing schedules.
+Current companion: data/.cex002_contract_history/review528-20261027.json
+SHA256: 7db1339fa6ac9bc1d8a49e96e658f8448d9312f3732f8f529372203c4e3e40f4
+Retrospective known_from: 2026-10-27T17:39:13Z. README selects this pin.
 
-The additional six-file / 197,913-byte check verified the new companion, all 96 launch
-boundaries and all 20 added closed-contract ends. Real OMG bars respect the postponed
-January 31 closure; corrected DOT launch timing applies; SOL reached native callbacks.
-A post-settlement OMG funding observation reached its callback unchanged without a
-payment claim. The original eleven-product market publication is unchanged. 589 symbols
-still have no compiled episode; the complete pending list is recorded in CMB Review527.
+The consumer checked all added boundaries and 6 real market files / 166,747 bytes.
+BTCUSDC reached native and original-field callbacks; UNFI's closed bar and RVV's
+order-restricted bar were refused. A later UNFI funding observation was delivered
+unchanged without payment entitlement. The exact evidence is in CMB Review528 and
+research/sprint_004/cex002_contract_history_expansion_528.json.
 
-Remaining CEX histories, dated specifications and historical availability are incomplete;
-unknowns stay explicit and all original data remain accessible. No full CEX-002 acceptance,
-strategy or scored study is claimed. No next HT ticket is authorized. The owner authorized
-the reviewer to finish this CEX repair directly; a mandatory Hermes handoff must not recur.
+6 symbols still lack episodes. Full lifetime specifications and historical receipt
+times remain incomplete; all original data remain accessible. No full CEX-002 acceptance,
+strategy or scored study is claimed. No next HT ticket is authorized. The owner permits
+the reviewer to finish this CEX repair directly; Hermes is optional.

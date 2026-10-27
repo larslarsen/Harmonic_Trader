@@ -49,9 +49,9 @@ The current reviewed companion can be selected as follows; then inspect the clos
 without discarding any source rows:
 
 ```bash
-CEX002_HISTORY="$CEX002_ROOT/data/.cex002_contract_history/review527-20261027.json"
-CEX002_HISTORY_SHA="2f72426cc568d4d7a487d75537cd18cdefc1b29914f68d7aec0dad162e4530aa"
-CEX002_KNOWLEDGE_TIME="2026-10-27T07:21:19Z"
+CEX002_HISTORY="$CEX002_ROOT/data/.cex002_contract_history/review528-20261027.json"
+CEX002_HISTORY_SHA="7db1339fa6ac9bc1d8a49e96e658f8448d9312f3732f8f529372203c4e3e40f4"
+CEX002_KNOWLEDGE_TIME="2026-10-27T17:39:13Z"
 PYTHONPATH=src .venv/bin/python -m harmonic_trader.cex002 --root "$CEX002_ROOT" rows \
   --product binance_usdm_bar_1h --symbol ANCBUSD --month 2022-12 --component '' \
   --history "$CEX002_HISTORY" --history-sha "$CEX002_HISTORY_SHA" \
@@ -65,8 +65,8 @@ boundary. It also refuses unknown histories and mixed-episode bar batches, rathe
 silently omitting rows. The `rows` command still shows those observations and their
 classification. Funding annotations never establish payment entitlement.
 
-The current companion covers 194 reviewed contract episodes across 182 symbols. Another
-589 release symbols still have no recovered episode; their history-aware bars are refused
+The current companion covers 777 reviewed contract episodes across 765 symbols. Another
+6 release symbols still have no recovered episode; their history-aware bars are refused
 as unknown. All lifetime contract specifications remain incomplete.
 
 The Python API is `ContractHistory`, `annotate_row` and `iter_history_rows` in
