@@ -11,6 +11,7 @@ import json
 import threading
 from dataclasses import dataclass
 from decimal import Decimal
+from datetime import datetime
 from typing import Any, ClassVar, Mapping, Sequence
 
 import pyarrow as pa
@@ -25,6 +26,7 @@ from nautilus_trader.model import TraderId
 from nautilus_trader.trading import Strategy
 
 from harmonic_trader.data.cex002 import Cex002ReaderError, Cex002ReleaseReader, ReleasedRow
+from harmonic_trader.data.cex002_history import ContractHistory, REFERENCE_POLICY, annotate_row
 
 CLOCK_POLICY = "event_time_assumption"
 TYPE_NAME = "Cex002NativeFields"
@@ -79,8 +81,9 @@ def _digest(payload: str) -> str:
     return hashlib.sha256(payload.encode("ascii")).hexdigest()
 
 
-def _payload(row: ReleasedRow) -> dict[str, Any]:
-    return {
+def _payload(row: ReleasedRow, *, history_sha256: str | None = None,
+             classification: dict[str, Any] | None = None) -> dict[str, Any]:
+    payload = {
         "clock_policy": CLOCK_POLICY,
         "component": row.file.component,
         "dataset_id": row.file.dataset_id,
@@ -93,6 +96,10 @@ def _payload(row: ReleasedRow) -> dict[str, Any]:
         "relative_path": row.file.relative_path,
         "source_available_at": None,
     }
+    if history_sha256 is not None:
+        payload["history_sha256"] = history_sha256
+        payload["reference_classification"] = classification
+    return payload
 
 
 @dataclass(frozen=True, slots=True)
@@ -127,10 +134,14 @@ class Cex002NativeFields:
     @property
     def lineage(self) -> dict[str, Any]:
         obj = json.loads(self.payload)
-        return {key: obj[key] for key in (
+        result = {key: obj[key] for key in (
             "product", "component", "dataset_id", "manifest_sha256", "file_sha256",
             "relative_path", "ordinal", "native_symbol", "source_available_at", "clock_policy",
         )}
+        if "history_sha256" in obj:
+            result["history_sha256"] = obj["history_sha256"]
+            result["reference_classification"] = obj["reference_classification"]
+        return result
 
     @classmethod
     def type_name_static(cls) -> str:
@@ -197,14 +208,29 @@ def cex002_data_type(product: str, native_symbol: str | None) -> DataType:
     return DataType(TYPE_NAME, metadata=metadata, identifier=identifier)
 
 
-def custom_event(row: ReleasedRow, *, clock_policy: str) -> CustomData:
+def custom_event(row: ReleasedRow, *, clock_policy: str,
+                 history: ContractHistory | None = None,
+                 knowledge_time: datetime | str | None = None,
+                 reference_policy: str | None = None,
+                 publication_sha256: str | None = None) -> CustomData:
     _require_policy(clock_policy)
     register_cex002_native_fields()
+    classification = None
+    if history is not None:
+        if (reference_policy != REFERENCE_POLICY or knowledge_time is None
+                or publication_sha256 != history.publication_sha256):
+            raise Cex002ReaderError("history custom event requires reviewed notices policy, knowledge time and matching publication")
+        annotation = annotate_row(row, history, knowledge_time)
+        classification = (annotation.classification.as_dict() if annotation.classification else
+                          {"status": "no_market_interval", "reason": annotation.interval_reason})
+    elif knowledge_time is not None or reference_policy is not None or publication_sha256 is not None:
+        raise Cex002ReaderError("custom reference options require a pinned contract history")
     event_ms = Cex002ReleaseReader.event_time_ms(row.file.product, row.file.component, row.fields)
     event_ns = event_ms * 1_000_000
     if event_ns > _U64:
         raise Cex002ReaderError("market event time exceeds Nautilus uint64 clock")
-    payload = _json(_payload(row))
+    payload = _json(_payload(row, history_sha256=history.sha256 if history else None,
+                             classification=classification))
     inner = Cex002NativeFields(event_ns, event_ns, payload, _digest(payload))
     return CustomData(cex002_data_type(row.file.product, row.file.native_symbol), inner)
 
@@ -227,7 +253,11 @@ def _decimal_places(value: Decimal) -> int:
 
 
 def native_bar(row: ReleasedRow, *, clock_policy: str,
-               price_precision: int | None = None, size_precision: int | None = None) -> Bar:
+               price_precision: int | None = None, size_precision: int | None = None,
+               history: ContractHistory | None = None,
+               knowledge_time: datetime | str | None = None,
+               reference_policy: str | None = None,
+               publication_sha256: str | None = None) -> Bar:
     _require_policy(clock_policy)
     if row.file.product != "binance_usdm_bar_1h" or row.file.component != "":
         raise Cex002ReaderError("only primary 1h bar rows have a native Bar projection")
@@ -245,7 +275,19 @@ def native_bar(row: ReleasedRow, *, clock_policy: str,
     event_ns = event_ms * 1_000_000
     if event_ns > _U64:
         raise Cex002ReaderError("bar event time exceeds Nautilus uint64 clock")
-    bar_type = BarType(InstrumentId(Symbol(symbol), Venue("BINANCE")),
+    native_identity = symbol
+    if history is not None:
+        if (reference_policy != REFERENCE_POLICY or knowledge_time is None
+                or publication_sha256 != history.publication_sha256):
+            raise Cex002ReaderError("history-aware Bar requires reviewed notices policy, knowledge time and matching publication")
+        classification = annotate_row(row, history, knowledge_time).classification
+        if classification is None or classification.status != "within_known_episode":
+            reason = classification.status if classification else "no_market_interval"
+            raise Cex002ReaderError(f"history-aware Bar refused: {reason}")
+        native_identity = classification.instrument_id
+    elif knowledge_time is not None or reference_policy is not None or publication_sha256 is not None:
+        raise Cex002ReaderError("Bar reference options require a pinned contract history")
+    bar_type = BarType(InstrumentId(Symbol(native_identity), Venue("BINANCE")),
                        BarSpecification(1, BarAggregation.HOUR, PriceType.LAST))
     try:
         prices = [Price.from_decimal_dp(value, price_precision) for value in values]
@@ -303,7 +345,11 @@ class _ReceiptProbe(Strategy):
         })
 
 
-def deliver_to_nautilus(rows: Sequence[ReleasedRow], *, clock_policy: str) -> dict[str, Any]:
+def deliver_to_nautilus(rows: Sequence[ReleasedRow], *, clock_policy: str,
+                        history: ContractHistory | None = None,
+                        knowledge_time: datetime | str | None = None,
+                        reference_policy: str | None = None,
+                        publication_sha256: str | None = None) -> dict[str, Any]:
     """Deliver a bounded, homogeneous market selection to real rc3 callbacks."""
     _require_policy(clock_policy)
     if not rows or len(rows) > 65_536:
@@ -311,14 +357,27 @@ def deliver_to_nautilus(rows: Sequence[ReleasedRow], *, clock_policy: str) -> di
     identity = (rows[0].file.product, rows[0].file.native_symbol, rows[0].file.component)
     if any((row.file.product, row.file.native_symbol, row.file.component) != identity for row in rows):
         raise Cex002ReaderError("Nautilus delivery requires one product, symbol and component")
-    wrappers = [custom_event(row, clock_policy=clock_policy) for row in rows]
+    if history is not None:
+        if (reference_policy != REFERENCE_POLICY or knowledge_time is None
+                or publication_sha256 != history.publication_sha256):
+            raise Cex002ReaderError("history delivery requires reviewed notices policy, knowledge time and matching publication")
+    elif knowledge_time is not None or reference_policy is not None or publication_sha256 is not None:
+        raise Cex002ReaderError("reference options require a pinned contract history")
+    wrappers = [custom_event(row, clock_policy=clock_policy, history=history,
+                             knowledge_time=knowledge_time, reference_policy=reference_policy,
+                             publication_sha256=publication_sha256) for row in rows]
     is_bar = identity[0] == "binance_usdm_bar_1h" and identity[2] == ""
     bars: list[Bar] = []
     if is_bar:
         price_precision, size_precision = native_bar_precision(rows)
         bars = [native_bar(row, clock_policy=clock_policy,
-                           price_precision=price_precision, size_precision=size_precision)
+                           price_precision=price_precision, size_precision=size_precision,
+                           history=history, knowledge_time=knowledge_time,
+                           reference_policy=reference_policy,
+                           publication_sha256=publication_sha256)
                 for row in rows]
+        if len({str(bar.bar_type) for bar in bars}) != 1:
+            raise Cex002ReaderError("history-aware native Bar delivery requires a single episode")
     probe = _ReceiptProbe()
     probe.bind(wrappers[0].data_type, bars[0].bar_type if bars else None)
     engine = BacktestEngine(BacktestEngineConfig(
@@ -335,4 +394,8 @@ def deliver_to_nautilus(rows: Sequence[ReleasedRow], *, clock_policy: str) -> di
         raise Cex002ReaderError("Nautilus callback receipt count differs from loaded data")
     return {"custom_count": len(probe.custom_receipts), "bar_count": len(probe.bar_receipts),
             "custom_receipts": probe.custom_receipts, "bar_receipts": probe.bar_receipts,
-            "clock_policy": CLOCK_POLICY, "source_available_at": None}
+            "clock_policy": CLOCK_POLICY, "source_available_at": None,
+            "qualification": (REFERENCE_POLICY if history is not None and is_bar
+                              else "unqualified_event_time_only" if history is None
+                              else "reference_annotated_original_fields_only"),
+            "history_sha256": history.sha256 if history is not None else None}

@@ -36,6 +36,43 @@ have known those values then**. Liquidation amounts stay in base-asset units; OI
 stays in provider quote units; unavailable funding rates and fees remain missing.
 The reader does not replace the existing stricter research observation classes.
 
+## Check historical contracts before projecting bars
+
+HT-005 adds a separately pinned contract-history file. It distinguishes relaunches and
+reused tickers, reports where a row falls relative to launch/restriction/settlement, and
+uses a separate Nautilus instrument identity for each recovered contract episode.
+The original market files and funding observations remain available.
+
+Set `CEX002_HISTORY` to the generated companion and `CEX002_HISTORY_SHA` to its reviewed
+SHA-256. Supply a UTC research knowledge time at or after the companion's `known_from`.
+The current reviewed companion can be selected as follows; then inspect the closure month
+without discarding any source rows:
+
+```bash
+CEX002_HISTORY="$CEX002_ROOT/data/.cex002_contract_history/review525-20261027.json"
+CEX002_HISTORY_SHA="67a648ecff6b6c7faa1f98fbd9457e5c5e69fe2a3e0aceb635ccb8fc69d93977"
+CEX002_KNOWLEDGE_TIME="2026-10-27T06:30:22Z"
+PYTHONPATH=src .venv/bin/python -m harmonic_trader.cex002 --root "$CEX002_ROOT" rows \
+  --product binance_usdm_bar_1h --symbol ANCBUSD --month 2022-12 --component '' \
+  --history "$CEX002_HISTORY" --history-sha "$CEX002_HISTORY_SHA" \
+  --knowledge-time "$CEX002_KNOWLEDGE_TIME" --limit 3
+```
+
+Use the same history options with `nautilus`, plus
+`--clock-policy event_time_assumption --reference-policy reviewed_notices_assumption`.
+That path refuses an hourly bar outside a known unrestricted episode or crossing a
+boundary. It also refuses unknown histories and mixed-episode bar batches, rather than
+silently omitting rows. The `rows` command still shows those observations and their
+classification. Funding annotations never establish payment entitlement.
+
+The Python API is `ContractHistory`, `annotate_row` and `iter_history_rows` in
+`harmonic_trader.data.cex002_history`. Native `native_bar`/`deliver_to_nautilus` accept
+`history`, `knowledge_time`, `reference_policy` and the matching `publication_sha256`.
+The companion preserves incomplete-history flags and launch-only specifications. Using
+today's recovered notices is retrospective reconstruction; it does not establish what
+was known at a historical trading decision. Omitting the history file retains HT-004's
+explicitly unqualified event-time transport.
+
 ## Current state
 
 The sibling `Crypto_Multifactor_Bot` repository owns acquisition, normalization,

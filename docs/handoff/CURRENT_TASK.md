@@ -1,16 +1,22 @@
 # Current Task
 
-Ticket: HT-004
+Ticket: HT-005
 State: ACCEPTED
 Reviewer: Lead Quantitative Finance Researcher/Engineer
 Next ticket: NONE
 
-The complete published CEX reader and explicit-assumption Nautilus transport are
-implemented and reviewed. See tickets/HT-004.md for focused checks and real callback
-results; README.md contains runnable usage. All eleven products are accessible directly
-from existing source files, without a second full catalog or CMB source imports.
+The reader now consumes the pinned CMB dated-contract companion, returns original rows
+with historical classifications, separates canonical identities across reused tickers and
+relaunches, and refuses history-aware native Bars outside a known unrestricted episode.
+Funding observations retain their values and annotations without a payment-entitlement claim.
 
-Historical source publication times remain unknown. This acceptance covers access and
-transport only; it does not establish safe historical decision timing or accept unfinished
-CEX-002 gates. Original data and the earlier full-release storage proof remain intact.
-No model, scored study, acquisition, broad CMB/DEX test run or next ticket is authorized.
+Sixteen focused HT cases and scoped Ruff passed. The six-file real check (176,167 market
+bytes) proved distinct LIT/PUMP identities, actual canonical Nautilus callbacks, closed-bar
+refusal and preserved annotated funding. See HT-005 for hashes and exact results; README
+has usage. Companion SHA67a648ecff6b6c7faa1f98fbd9457e5c5e69fe2a3e0aceb635ccb8fc69d93977
+contains98 episodes across86 symbols. The original eleven-product publication is unchanged.
+
+Remaining CEX histories, dated specifications and historical availability are incomplete;
+unknowns stay explicit and all original data remain accessible. No full CEX-002 acceptance,
+strategy or scored study is claimed. No next HT ticket is authorized. The owner authorized
+the reviewer to finish this CEX repair directly; a mandatory Hermes handoff must not recur.
