@@ -22,6 +22,8 @@ a complete BTC delivery command. All prior 777 episode records are unchanged.
 
 No strategy or scored study is authorized. Historical order rules and historical receipt
 times remain incomplete; native callbacks do not establish executable orders or fills.
-CMB continues its bounded final evidence and consolidated report under CEX-002. No full
-CEX-002 acceptance or next HT ticket is claimed. The reviewer owns this repair's validation
-and publication; Hermes is optional under the owner override.
+CMB Review531 now accepts the complete eleven-product CEX-002 data release and this
+consumer delivery. Its explicit validation amendment uses completed CEX data/consumer
+checks; whole-repository pytest remains incomplete, with seven strongly reconstructed
+Uniswap/DEX failures recorded separately. No data scope was reduced. No next HT ticket
+or strategy is authorized. The reviewer owns this closeout publication.

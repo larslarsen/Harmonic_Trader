@@ -97,6 +97,13 @@ explicitly unqualified event-time transport.
 
 ## Current state
 
+CEX-002's complete eleven-product research data release is now accepted in CMB
+Review531, together with the HT-004/HT-005 reader delivery. The commands above read that
+release in place. Acceptance uses the completed CEX product checks, full data/Nautilus
+proofs and focused history validation under an explicit reviewer amendment; the broader
+CMB software test suite remains incomplete. Historical data limits described above remain.
+No strategy or scored study has been authorized by this data-delivery closeout.
+
 The sibling `Crypto_Multifactor_Bot` repository owns acquisition, normalization,
 reconciliation, and immutable publication of the CEX-002 data bundle. This repository owns
 causal event extraction, representations, model discovery, experiment definitions, and
