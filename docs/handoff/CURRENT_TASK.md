@@ -10,11 +10,18 @@ with historical classifications, separates canonical identities across reused ti
 relaunches, and refuses history-aware native Bars outside a known unrestricted episode.
 Funding observations retain their values and annotations without a payment-entitlement claim.
 
-Sixteen focused HT cases and scoped Ruff passed. The six-file real check (176,167 market
-bytes) proved distinct LIT/PUMP identities, actual canonical Nautilus callbacks, closed-bar
-refusal and preserved annotated funding. See HT-005 for hashes and exact results; README
-has usage. Companion SHA67a648ecff6b6c7faa1f98fbd9457e5c5e69fe2a3e0aceb635ccb8fc69d93977
-contains98 episodes across86 symbols. The original eleven-product publication is unchanged.
+Sixteen focused HT cases and scoped Ruff remain passed; no source changed. The earlier
+LIT/PUMP/ANCBUSD real checks remain accepted. CMB Review527 adds 96 symbols to the
+companion, now 194 episodes across 182 symbols. All prior 98 episode records are unchanged.
+Current SHA256: 2f72426cc568d4d7a487d75537cd18cdefc1b29914f68d7aec0dad162e4530aa.
+Retrospective known_from: 2026-10-27T07:21:19Z. README selects this new pin.
+
+The additional six-file / 197,913-byte check verified the new companion, all 96 launch
+boundaries and all 20 added closed-contract ends. Real OMG bars respect the postponed
+January 31 closure; corrected DOT launch timing applies; SOL reached native callbacks.
+A post-settlement OMG funding observation reached its callback unchanged without a
+payment claim. The original eleven-product market publication is unchanged. 589 symbols
+still have no compiled episode; the complete pending list is recorded in CMB Review527.
 
 Remaining CEX histories, dated specifications and historical availability are incomplete;
 unknowns stay explicit and all original data remain accessible. No full CEX-002 acceptance,
