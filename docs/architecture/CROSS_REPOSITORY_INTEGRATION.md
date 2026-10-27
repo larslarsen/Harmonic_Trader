@@ -1,6 +1,6 @@
 # Cross-Repository Architecture
 
-Status: governing Harmonic Trader design
+Status: governing Harmonic Trader design; data-access boundary amended by decisions/0001-cex002-direct-reader.md
 
 Scored execution status: blocked until the complete CEX-002 bundle is accepted
 
@@ -19,8 +19,8 @@ NautilusTrader catalog-load proof for CEX-002.
 - experiment locks, fold artifacts, and trial accounting; and
 - NautilusTrader strategies, backtests, execution assumptions, and result evidence.
 
-The integration boundary is the immutable CEX-002 bundle descriptor plus the bundle's
-NautilusTrader catalog. It is not the upstream source checkout, mutable SQLite control
+For HT-004, the integration boundary is the immutable admitted CEX-002 publication and
+its pinned Parquet manifests, read directly without a second permanent Nautilus catalog. It is not the upstream source checkout, mutable SQLite control
 database, a copied data tree, or a custom upstream backtest wheel.
 
 ## Required release
@@ -65,7 +65,7 @@ query the live control database, or write upstream state.
 ## Internal layers
 
 ```text
-accepted CEX-002 descriptor + read-only Nautilus catalog
+pinned CEX-002 descriptor + read-only source Parquet
                          |
                          v
              bundle verification/adapters
